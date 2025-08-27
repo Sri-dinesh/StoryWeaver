@@ -27,25 +27,19 @@ let sceneElements = new Map();
 
 // Initialize application
 function initApp() {
-  // Get DOM references
   board = document.getElementById("board");
   inspector = document.getElementById("inspector");
   connectorsSvg = document.getElementById("connectors");
 
-  // Setup event listeners
   setupEventListeners();
 
-  // Load data from localStorage or create sample story
   loadFromLocal();
 
-  // Render initial state
   renderAll();
 
-  // Setup keyboard shortcuts
   setupKeyboardShortcuts();
 }
 
-// Generate unique IDs
 function makeId(prefix = "s") {
   return (
     prefix +
@@ -743,7 +737,6 @@ function importJSON(e) {
   };
 
   reader.readAsText(file);
-  e.target.value = ""; // Reset file input
 }
 
 // Export playable HTML
@@ -752,13 +745,10 @@ function exportPlayableHTML() {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interactive Story</title>
     <style>
-        body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
             margin: 0;
             padding: 20px;
             min-height: 100vh;
@@ -2497,7 +2487,6 @@ function loadSampleStory(storyKey) {
   saveToLocal();
 }
 
-// Make functions globally available
 window.updateChoiceText = updateChoiceText;
 window.updateChoiceTarget = updateChoiceTarget;
 window.deleteChoice = deleteChoice;
@@ -2506,82 +2495,35 @@ window.deleteHint = deleteHint;
 window.shareScene = shareScene;
 window.loadSampleStory = loadSampleStory;
 
-// Initialize app
-// if (typeof window !== "undefined") {
-//   // Check if we're viewing a shared scene
-//   const urlParams = new URLSearchParams(window.location.search);
-//   const sharedSceneData = urlParams.get("scene");
-
-//   if (sharedSceneData) {
-//     document.addEventListener("DOMContentLoaded", () =>
-//       loadSharedScene(sharedSceneData)
-//     );
-//   } else {
-//     // Normal app initialization
-//     document.addEventListener("DOMContentLoaded", () => {
-//       loadFromLocal();
-//       renderAll();
-
-//       // Add keyboard shortcuts
-//       document.addEventListener("keydown", function (e) {
-//         if (e.key === "n" || e.key === "N") {
-//           if (!e.ctrlKey && !e.metaKey) {
-//             e.preventDefault();
-//             createScene();
-//           }
-//         } else if (e.key === " ") {
-//           e.preventDefault();
-//           previewStory();
-//         }
-//       });
-
-//       // Add click handler to deselect scenes when clicking empty space
-//       document.getElementById("board").addEventListener("click", function (e) {
-//         if (e.target === this) {
-//           selectScene(null);
-//         }
-//       });
-//     });
-//   }
-// }
-
 if (typeof window !== "undefined") {
   const urlParams = new URLSearchParams(window.location.search);
   const sharedSceneData = urlParams.get("scene");
 
   document.addEventListener("DOMContentLoaded", () => {
     if (sharedSceneData) {
-      // Show shared scene view when `?scene=...` is present
       loadSharedScene(sharedSceneData);
       return;
     }
 
-    // Normal app initialization - initApp handles DOM refs and rendering
     initApp();
   });
 }
 
-// Expose story getter/setter so autosave.js can access app state
 (function () {
-  // Return the current app data object
   window.getStory = function () {
     return data;
   };
 
-  // Replace app data and re-render + persist
   window.setStory = function (state) {
     if (!state || typeof state !== "object") return;
     data = state;
 
-    // Re-render UI to reflect new state
     try {
-      // If initApp has run, use renderAll; otherwise it's safe to defer
       if (typeof renderAll === "function") renderAll();
     } catch (e) {
       console.warn("setStory: renderAll failed", e);
     }
 
-    // Persist to localStorage
     try {
       if (typeof saveToLocal === "function") saveToLocal();
     } catch (e) {

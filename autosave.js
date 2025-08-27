@@ -1,19 +1,3 @@
-/*
-  Autosave + Version History + Keyboard Shortcuts for StoryWeaver
-  - Autosaves current story object (tries several common global names) every X seconds
-  - Stores N snapshots in localStorage under "storyForge_snapshots"
-  - Provides a lightweight restore UI and snapshot list
-  - Implements keyboard shortcuts:
-      N       -> New Scene (clicks #newSceneBtn)
-      Space   -> Preview (clicks #previewBtn) (prevents when typing)
-      Delete  -> Delete selected (clicks #deleteSceneBtn)
-      Ctrl+Z  -> Undo (restore previous snapshot)
-      Ctrl+Y  -> Redo (restore next snapshot)
-  Notes:
-  - If your app exposes getStory() / setStory() / renderStory() use those names;
-    autosave will try them automatically.
-*/
-
 (function () {
   const SNAP_KEY = "storyForge_snapshots";
   const LAST_KEY = "storyForge_lastSaved";
@@ -177,44 +161,199 @@
     container.style.zIndex = 9999;
     container.style.fontFamily = "sans-serif";
     container.innerHTML = `
-      <div style="background:rgba(0,0,0,0.6);color:#fff;padding:8px;border-radius:8px;min-width:180px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <div style="font-size:12px">Autosave</div>
-          <div id="sf-last-saved" style="font-size:11px;opacity:0.9">...</div>
-        </div>
-        <div style="margin-top:6px;display:flex;gap:6px">
-          <button id="sf-open-history" style="flex:1;padding:6px;border-radius:4px;border:0;background:#fff;color:#111;font-weight:600;cursor:pointer">History</button>
-          <button id="sf-save-now" style="padding:6px;border-radius:4px;border:0;background:#2b6cff;color:#fff;cursor:pointer">Save</button>
-        </div>
+    <style>
+      /* Autosave card */
+      #sf-autosave-ui .sf-card {
+        width: 220px;
+        background: #ffffff;
+        color: #1f2937;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(31,41,55,0.12);
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        border: 1px solid rgba(15,23,42,0.04);
+      }
+      #sf-autosave-ui .sf-row {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:8px;
+      }
+      #sf-autosave-ui .sf-label {
+        font-size:13px;
+        font-weight:600;
+        color:#0f172a;
+      }
+      #sf-autosave-ui .sf-time {
+        font-size:12px;
+        color:#6b7280;
+      }
+      #sf-autosave-ui .sf-actions {
+        display:flex;
+        gap:8px;
+      }
+      #sf-autosave-ui .sf-btn {
+        flex:1;
+        padding:7px 8px;
+        border-radius:8px;
+        border:1px solid transparent;
+        font-size:13px;
+        cursor:pointer;
+      }
+      #sf-autosave-ui .sf-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+      #sf-autosave-ui .sf-btn-ghost {
+        background: transparent;
+        color: #374151;
+        border: 1px solid rgba(15,23,42,0.06);
+      }
+      #sf-autosave-ui .sf-btn-primary {
+        background: #2563eb;
+        color: #fff;
+        border: 1px solid rgba(37,99,235,0.12);
+      }
+
+      /* History modal */
+      #sf-history-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(2,6,23,0.45);
+        display: none;
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+      }
+      #sf-history-modal {
+        background: #fff;
+        border-radius: 12px;
+        width: min(820px, 92%);
+        max-height: 80vh;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(2,6,23,0.35);
+        border: 1px solid rgba(15,23,42,0.06);
+        display: flex;
+        flex-direction: column;
+      }
+      #sf-history-modal .sf-modal-header {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding:14px 16px;
+        border-bottom:1px solid rgba(15,23,42,0.04);
+      }
+      #sf-history-modal .sf-modal-body {
+        padding:12px 16px;
+        overflow:auto;
+      }
+      #sf-history-list .sf-item {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        padding:10px 0;
+        border-bottom:1px solid rgba(15,23,42,0.04);
+      }
+      #sf-history-list .sf-item .meta {
+        display:flex;
+        flex-direction:column;
+      }
+      #sf-history-list .sf-item .meta .title {
+        font-weight:600;
+        color:#0f172a;
+        font-size:14px;
+      }
+      #sf-history-list .sf-item .meta .time {
+        font-size:12px;
+        color:#6b7280;
+      }
+      #sf-history-list .sf-actions {
+        display:flex;
+        gap:8px;
+      }
+      #sf-history-list button {
+        padding:6px 8px;
+        border-radius:8px;
+        border:1px solid rgba(15,23,42,0.06);
+        background:transparent;
+        cursor:pointer;
+        font-size:13px;
+      }
+      #sf-history-list button.restore {
+        background:#10b981;
+        color:#fff;
+        border:1px solid rgba(16,185,129,0.12);
+      }
+      #sf-history-list button.delete {
+        background:#ef4444;
+        color:#fff;
+      }
+      #sf-history-modal .sf-modal-footer {
+        padding:12px 16px;
+        border-top:1px solid rgba(15,23,42,0.04);
+        display:flex;
+        justify-content:flex-end;
+        gap:8px;
+      }
+    </style>
+
+    <div class="sf-card" role="region" aria-label="Autosave">
+      <div class="sf-row">
+        <div class="sf-label">Autosave</div>
+        <div id="sf-last-saved" class="sf-time">—</div>
       </div>
-      <div id="sf-history-modal" style="display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:10000">
-        <div style="background:#fff;color:#111;padding:16px;border-radius:8px;min-width:360px;box-shadow:0 8px 30px rgba(0,0,0,0.3)">
-          <div style="display:flex;align-items:center;justify-content:space-between">
-            <strong>Snapshots</strong>
-            <div>
-              <button id="sf-history-close" style="margin-right:8px">Close</button>
-              <button id="sf-history-clear" style="background:#ff5c5c;color:#fff;border:0;padding:6px;border-radius:4px">Clear</button>
-            </div>
+      <div class="sf-actions">
+        <button id="sf-open-history" class="sf-btn sf-btn-ghost" title="Open snapshot history">History</button>
+        <button id="sf-save-now" class="sf-btn sf-btn-primary" title="Save snapshot now">Save</button>
+      </div>
+    </div>
+
+    <div id="sf-history-backdrop" aria-hidden="true">
+      <div id="sf-history-modal" role="dialog" aria-modal="true" aria-label="Autosave History">
+        <div class="sf-modal-header">
+          <div style="font-weight:700">Snapshots</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="sf-history-clear" title="Clear all snapshots" style="padding:8px;border-radius:8px;background:#fff;border:1px solid rgba(15,23,42,0.06);cursor:pointer">Clear</button>
+            <button id="sf-history-close" title="Close" style="padding:8px;border-radius:8px;background:#fff;border:1px solid rgba(15,23,42,0.06);cursor:pointer">Close</button>
           </div>
-          <div id="sf-history-list" style="margin-top:12px;max-height:320px;overflow:auto"></div>
+        </div>
+        <div class="sf-modal-body">
+          <div id="sf-history-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        </div>
+        <div class="sf-modal-footer">
+          <small style="color:#6b7280">Stored locally in your browser. Up to ${MAX_SNAPSHOTS} snapshots.</small>
         </div>
       </div>
-    `;
+    </div>
+  `;
+
     document.body.appendChild(container);
 
+    // wire up controls (existing handlers rely on these IDs)
     document.getElementById("sf-save-now").addEventListener("click", () => {
       autosaveTick();
       flashMessage("Saved");
     });
+
     document.getElementById("sf-open-history").addEventListener("click", () => {
       renderHistoryModal();
-      document.getElementById("sf-history-modal").style.display = "block";
+      const backdrop = document.getElementById("sf-history-backdrop");
+      if (backdrop) {
+        backdrop.style.display = "flex";
+        backdrop.setAttribute("aria-hidden", "false");
+      }
     });
+
     document
       .getElementById("sf-history-close")
       .addEventListener("click", () => {
-        document.getElementById("sf-history-modal").style.display = "none";
+        const backdrop = document.getElementById("sf-history-backdrop");
+        if (backdrop) {
+          backdrop.style.display = "none";
+          backdrop.setAttribute("aria-hidden", "true");
+        }
       });
+
     document
       .getElementById("sf-history-clear")
       .addEventListener("click", () => {
@@ -222,6 +361,15 @@
         localStorage.removeItem(SNAP_KEY);
         renderHistoryModal();
         updateAutosaveUI();
+      });
+
+    document
+      .getElementById("sf-history-backdrop")
+      .addEventListener("click", (ev) => {
+        if (ev.target === ev.currentTarget) {
+          ev.currentTarget.style.display = "none";
+          ev.currentTarget.setAttribute("aria-hidden", "true");
+        }
       });
   }
 
@@ -272,7 +420,6 @@
       `;
       })
       .join("");
-    // attach handlers
     Array.from(list.querySelectorAll(".sf-restore-btn")).forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const idx = Number(e.currentTarget.dataset.idx);
