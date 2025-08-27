@@ -175,6 +175,12 @@ Planned features for future versions:
 - Detailed learning analytics dashboard
 - Multi-language support for international use
 
+## Images
+
+![Screenshots](./userinterface.png)
+![](./autosaver.png)
+![](./analytics.png)
+
 ---
 
 **Built for educators, by educators.** This tool makes interactive educational content creation accessible to teachers and students alike, no coding required.
