@@ -2,7 +2,7 @@
 
 A comprehensive browser-based visual story editor designed specifically for creating interactive educational content. Build branching narratives with drag-and-drop scenes, educational features, and export standalone HTML stories for students.
 
-![Story Editor Preview](https://via.placeholder.com/800x400/4f46e5/ffffff?text=Visual+Story+Editor)
+![Story Editor Preview](./StoryWeaver.png)
 
 ## 🌟 Features
 

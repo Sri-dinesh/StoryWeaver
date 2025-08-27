@@ -496,21 +496,18 @@
       </div>
     </div>
 
-    <!-- Hidden File Input for Import -->
     <input
       type="file"
       id="fileInput"
       accept=".json"
       style="display: none" />
 
-    <!-- Loading Icons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js"></script>
     <script src="app.js"></script>
+    <script src="autosave.js"></script>
     <script>
-      // Initialize feather icons
       feather.replace();
 
-      // Initialize the application
       window.addEventListener("DOMContentLoaded", () => {
         initApp();
       });
